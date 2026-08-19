@@ -4,15 +4,18 @@
     </a>
 
     <nav>
-        {% if session.get('user_id') %}
+        {% if g.current_user %}
             <a class="nav-trigger" href="{{ url_for('main.transactions_page') }}">Transactions</a>
             <a class="nav-trigger" href="{{ url_for('main.bank_import_page') }}">Bank Import</a>
             <a class="nav-trigger" href="{{ url_for('main.reconcile_page') }}">Reconcile</a>
             <a class="nav-trigger" href="{{ url_for('main.record_viewer_page') }}">Record Viewer</a>
-            {% if session.get('is_admin') %}
+            {% if g.current_user.is_admin %}
                 <a class="nav-trigger" href="{{ url_for('main.settings_page') }}">Settings</a>
             {% endif %}
-            <a class="nav-trigger" href="{{ url_for('main.logout') }}" onclick="return confirm('Are you sure you want to log out?');">Log out</a>
+            <form class="nav-logout" action="{{ url_for('main.logout') }}" method="post" onsubmit="return confirm('Are you sure you want to log out?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="nav-trigger" type="submit">Log out</button>
+            </form>
         {% else %}
             <!-- Simple hover dropdowns for auth -->
             <div class="nav-menu">

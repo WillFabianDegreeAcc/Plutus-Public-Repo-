@@ -31,6 +31,7 @@
         <p>There are no unreconciled manual transactions available.</p>
         {% else %}
         <form action="{{ url_for('main.reconcile_page') }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="statement_id" value="{{ selected_statement.id }}">
 
             <div class="table-wrap">
@@ -71,7 +72,7 @@
             </div>
 
             <button type="submit">Save reconciled statement</button>
-        </form>
+            </form>
         {% endif %}
     </section>
 </section>

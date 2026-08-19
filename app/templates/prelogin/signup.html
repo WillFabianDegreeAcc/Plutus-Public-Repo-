@@ -1,4 +1,6 @@
 <form class="nav-panel" action="{{ url_for('main.signup') }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <p>Public sign-up creates an administrator in a new, isolated group. Joining an existing group requires an invitation.</p>
     <label for="nav-name">Full name</label>
     <input id="nav-name" name="name" type="text" placeholder="Jane Doe" required>
 

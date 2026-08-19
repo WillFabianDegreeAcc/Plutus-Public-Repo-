@@ -8,8 +8,9 @@
     <p>Generate a one-time invite link for your group.</p>
 
     <form class="transaction-form" action="{{ url_for('main.generate_invite_link') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="group-code">Group code</label>
-        <input id="group-code" type="text" value="{{ session.get('group_code', '') }}" readonly>
+        <input id="group-code" type="text" value="{{ g.current_user.group_code }}" readonly>
         <button type="submit">Generate invite link</button>
     </form>
 
@@ -20,5 +21,24 @@
         <p>This link can only be used once.</p>
     </div>
     {% endif %}
+
+    <h2>Create user</h2>
+    <form class="transaction-form" action="{{ url_for('main.create_group_user') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label for="user-name">Full name</label>
+        <input id="user-name" name="name" type="text" required>
+
+        <label for="user-email">Email</label>
+        <input id="user-email" name="email" type="email" required>
+
+        <label for="user-password">Temporary password</label>
+        <input id="user-password" name="password" type="password" required>
+
+        <label for="user-admin">Administrator</label>
+        <input id="user-admin" name="admin" type="checkbox">
+
+        <button type="submit">Create user</button>
+    </form>
 </section>
 {% endblock %}

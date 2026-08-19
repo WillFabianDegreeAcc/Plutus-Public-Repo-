@@ -1,4 +1,4 @@
-from flask import flash, redirect, render_template, request, session, url_for
+from flask import flash, g, redirect, render_template, request, url_for
 
 from app.models import (
     add_reconciled_statement,
@@ -6,16 +6,9 @@ from app.models import (
     get_unreconciled_bank_transactions,
     get_unreconciled_transactions,
 )
-from app.services import session_service
-
-
 def reconcile_page():
-    if not session_service.is_logged_in():
-        session.clear()
-        return redirect(url_for("main.home"))
-
-    group_code = session.get("group_code", "")
-    user_id = session.get("user_id")
+    group_code = g.current_user["group_code"]
+    user_id = g.current_user["id"]
     statements = get_statements_for_reconciliation(group_code)
 
     selected_statement_id = request.values.get("statement_id", "").strip()

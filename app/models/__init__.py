@@ -16,14 +16,14 @@ from app.models.schema import init_db
 from app.models.statement_model import add_statement
 from app.models.transaction_model import add_transaction
 from app.models.user_model import (
+    add_invited_user,
     add_user,
     clear_session_token,
     create_invite_link,
     get_invite_link,
-    get_session_token,
+    get_user_for_session,
     get_user_by_email,
     set_session_token,
-    use_invite_link,
 )
 
 __all__ = [
@@ -31,6 +31,7 @@ __all__ = [
     "add_reconciled_statement",
     "add_statement",
     "add_bank_transaction",
+    "add_invited_user",
     "add_transaction",
     "add_user",
     "clear_session_token",
@@ -39,7 +40,7 @@ __all__ = [
     "get_bank_file_formats_for_group",
     "get_invite_link",
     "get_reconciliation_totals",
-    "get_session_token",
+    "get_user_for_session",
     "get_statement_reconciliation_totals",
     "get_statements_for_reconciliation",
     "get_unreconciled_bank_transactions",
@@ -47,5 +48,4 @@ __all__ = [
     "get_user_by_email",
     "init_db",
     "set_session_token",
-    "use_invite_link",
 ]

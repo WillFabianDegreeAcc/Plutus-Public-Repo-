@@ -1,4 +1,5 @@
 <form class="nav-panel" action="{{ url_for('main.login') }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label for="nav-email">Email</label>
     <input id="nav-email" name="email" type="email" placeholder="you@example.com" required>
 

@@ -1,26 +1,15 @@
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
-from flask import flash, redirect, render_template, request, session, url_for
+from flask import flash, g, redirect, render_template, request, url_for
 
 from app.messages import INVALID_TRANSACTION, MISSING_FIELDS
 from app.models import add_transaction
-from app.services import session_service
-
-
 def transactions_page():
-    if not session_service.is_logged_in():
-        session.clear()
-        return redirect(url_for("main.home"))
-
     return render_template("postlogin/transactions.html")
 
 
 def create_transaction():
-    if not session_service.is_logged_in():
-        session.clear()
-        return redirect(url_for("main.home"))
-
     name = request.form.get("name", "").strip()
     transaction_date_raw = request.form.get("date", "").strip()
     amount_raw = request.form.get("amount", "").strip()
@@ -44,8 +33,8 @@ def create_transaction():
         flash(INVALID_TRANSACTION, "error")
         return redirect(url_for("main.transactions_page"))
 
-    user_id = session.get("user_id")
-    group_code = session.get("group_code", "")
+    user_id = g.current_user["id"]
+    group_code = g.current_user["group_code"]
     created_transaction_id = add_transaction(
         user_id,
         group_code,

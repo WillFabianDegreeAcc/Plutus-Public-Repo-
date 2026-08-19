@@ -28,7 +28,7 @@
                                 {% for column in columns %}
                                 <th>{{ column }}</th>
                                 {% endfor %}
-                                <th>Actions</th>
+                                {% if editable_columns or is_admin %}<th>Actions</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -44,17 +44,20 @@
                                     {% endif %}
                                 </td>
                                 {% endfor %}
+                                {% if editable_columns or is_admin %}
                                 <td>
                                     <form id="row-form-{{ row_loop.index0 }}-{{ row['id'] }}" action="{{ url_for('main.record_viewer_page') }}" method="post">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="table" value="{{ selected_table }}">
                                         <input type="hidden" name="page" value="{{ page }}">
                                         <input type="hidden" name="row_id" value="{{ row['id'] }}">
-                                        <button type="submit" name="action" value="update">Save</button>
+                                        {% if editable_columns %}<button type="submit" name="action" value="update">Save</button>{% endif %}
                                         {% if is_admin %}
                                         <button type="submit" name="action" value="delete" onclick="return confirm('Are you sure you want to delete this record?');">Delete</button>
                                         {% endif %}
                                     </form>
                                 </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>

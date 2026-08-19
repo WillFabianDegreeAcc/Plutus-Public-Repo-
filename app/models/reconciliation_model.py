@@ -140,10 +140,16 @@ def add_reconciled_statement(user_id, statement_id, group_code, lines):
                 statement_id,
                 group_code
             )
-            VALUES (%s, %s, %s)
+            SELECT users.id, statements.id, %s
+            FROM users
+            CROSS JOIN statements
+            WHERE users.id = %s
+              AND users.group_code = %s
+              AND statements.id = %s
+              AND statements.group_code = %s
             RETURNING id
             """,
-            (user_id, statement_id, group_code),
+            (group_code, user_id, group_code, statement_id, group_code),
         )
         row = cursor.fetchone()
         if row is None:
@@ -161,15 +167,27 @@ def add_reconciled_statement(user_id, statement_id, group_code, lines):
                     bank_transaction_id,
                     transaction_id
                 )
-                VALUES (%s, %s, %s, %s)
+                SELECT %s, %s, bank_transactions.id, transactions.id
+                FROM "bankTransactions" bank_transactions
+                JOIN transactions ON transactions.id = %s
+                WHERE bank_transactions.id = %s
+                  AND bank_transactions.statement_id = %s
+                  AND bank_transactions.group_code = %s
+                  AND transactions.group_code = %s
                 """,
                 (
                     reconciled_statement_id,
                     group_code,
-                    bank_transaction_id,
                     transaction_id,
+                    bank_transaction_id,
+                    statement_id,
+                    group_code,
+                    group_code,
                 ),
             )
+            if cursor.rowcount != 1:
+                conn.rollback()
+                return None
 
         conn.commit()
         return reconciled_statement_id

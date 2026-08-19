@@ -8,6 +8,7 @@
     <p>Add receipts, pay cheques, and other account activity.</p>
 
     <form class="transaction-form" action="{{ url_for('main.create_transaction') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="transaction-name">Name</label>
         <input id="transaction-name" name="name" type="text" placeholder="Tesco Groceries" required>
 

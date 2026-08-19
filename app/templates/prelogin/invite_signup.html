@@ -8,6 +8,7 @@
     <p>This account will join the inviter's group.</p>
 
     <form class="transaction-form" action="{{ url_for('main.invite_signup', token=token) }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="invite-name">Full name</label>
         <input id="invite-name" name="name" type="text" placeholder="Jane Doe" required>
 

@@ -1,19 +1,12 @@
-from flask import redirect, render_template, request, session, url_for
+from flask import g, render_template, request
 
 from app.models import (
     get_reconciliation_totals,
     get_statement_reconciliation_totals,
     get_statements_for_reconciliation,
 )
-from app.services import session_service
-
-
 def app_page():
-    if not session_service.is_logged_in():
-        session.clear()
-        return redirect(url_for("main.home"))
-
-    group_code = session.get("group_code", "")
+    group_code = g.current_user["group_code"]
     statements = get_statements_for_reconciliation(group_code)
     totals = get_reconciliation_totals(group_code)
 

@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 import io
 import re
 
-from flask import flash, redirect, render_template, request, session, url_for
+from flask import flash, g, redirect, render_template, request, url_for
 
 from app.models import (
     add_bank_file_format,
@@ -13,8 +13,6 @@ from app.models import (
     get_bank_file_format_by_id,
     get_bank_file_formats_for_group,
 )
-from app.services import session_service
-
 DEFAULT_DELIMITER = ","
 MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024
 MANAGE_FORMAT_PAGE_SIZE = 5
@@ -25,11 +23,7 @@ BANK_FILE_FORMAT_KEYS = "id format_name delimiter date_format data_start_row dat
 
 
 def bank_import_page():
-    user_id = _get_logged_in_user_id()
-    if user_id is None:
-        return redirect(url_for("main.home"))
-
-    group_code = session.get("group_code", "")
+    group_code = g.current_user["group_code"]
     format_db_rows = get_bank_file_formats_for_group(group_code)
     formats = [dict(zip(BANK_FILE_FORMAT_KEYS, row)) for row in format_db_rows]
 
@@ -61,10 +55,8 @@ def bank_import_page():
 
 
 def create_bank_file_format():
-    user_id = _get_logged_in_user_id()
-    if user_id is None:
-        return redirect(url_for("main.home"))
-    group_code = session.get("group_code", "")
+    user_id = g.current_user["id"]
+    group_code = g.current_user["group_code"]
 
     file_format_data = _read_bank_file_format_data(request.form)
     validation_error = _validate_bank_file_format_data(file_format_data)
@@ -96,10 +88,8 @@ def create_bank_file_format():
 
 
 def upload_bank_file():
-    user_id = _get_logged_in_user_id()
-    if user_id is None:
-        return redirect(url_for("main.home"))
-    group_code = session.get("group_code", "")
+    user_id = g.current_user["id"]
+    group_code = g.current_user["group_code"]
 
     format_id_raw = request.form.get("bank_file_format_id", "").strip()
     format_id = _parse_positive_int(format_id_raw)
@@ -330,10 +320,3 @@ def _parse_positive_int(value):
         return None
 
     return parsed_value
-
-
-def _get_logged_in_user_id():
-    if not session_service.is_logged_in():
-        session.clear()
-        return None
-    return session.get("user_id")

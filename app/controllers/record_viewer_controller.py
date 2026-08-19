@@ -1,49 +1,117 @@
+from flask import abort, flash, g, redirect, render_template, request, url_for
 from psycopg2 import Error, sql
-from flask import flash, redirect, render_template, request, session, url_for
 
 from app.models.db import execute
-from app.services import session_service
 
 PAGE_SIZE = 20
-LOCKED_COLUMNS = {
-    "admin",
-    "created_at",
-    "group_code",
-    "id",
-    "invite_token",
-    "password",
-    "session_token",
-    "used",
-    "used_at",
+FINANCIAL_RECORD_TABLES = {
+    "transactions": {
+        "columns": (
+            "id",
+            "name",
+            "transaction_date",
+            "amount",
+            "transaction_type",
+            "transaction_genre",
+        ),
+        "editable": (
+            "name",
+            "transaction_date",
+            "amount",
+            "transaction_type",
+            "transaction_genre",
+        ),
+    },
+    "bankFileFormats": {
+        "columns": (
+            "id",
+            "format_name",
+            "delimiter",
+            "date_format",
+            "data_start_row",
+            "date_column",
+            "name_column",
+            "amount_column",
+            "debit_amount_column",
+            "credit_amount_column",
+            "transaction_type_column",
+        ),
+        "editable": (
+            "format_name",
+            "delimiter",
+            "date_format",
+            "data_start_row",
+            "date_column",
+            "name_column",
+            "amount_column",
+            "debit_amount_column",
+            "credit_amount_column",
+            "transaction_type_column",
+        ),
+    },
+    "statements": {
+        "columns": ("id", "bank_file_format_id", "name", "imported_at"),
+        "editable": ("name",),
+    },
+    "bankTransactions": {
+        "columns": (
+            "id",
+            "statement_id",
+            "name",
+            "transaction_date",
+            "amount",
+            "transaction_type",
+        ),
+        "editable": ("name", "transaction_date", "amount", "transaction_type"),
+    },
+    "reconciledStatements": {
+        "columns": ("id", "statement_id", "created_at"),
+        "editable": (),
+    },
+    "reconciledStatementLines": {
+        "columns": (
+            "id",
+            "reconciled_statement_id",
+            "bank_transaction_id",
+            "transaction_id",
+        ),
+        "editable": (),
+    },
+}
+SENSITIVE_RECORD_TABLES = {
+    "users": {
+        "columns": ("id", "name", "email", "admin"),
+        "editable": ("name", "email", "admin"),
+    },
+    "groupInvites": {
+        "columns": (
+            "id",
+            "admin_user_id",
+            "used",
+            "used_by_user_id",
+            "used_at",
+            "created_at",
+        ),
+        "editable": ("used",),
+    },
 }
 
 
 def record_viewer_page():
-    if not session_service.is_logged_in():
-        session.clear()
-        return redirect(url_for("main.home"))
-    group_code = session.get("group_code", "")
-    is_admin = bool(session.get("is_admin"))
+    group_code = g.current_user["group_code"]
+    is_admin = g.current_user["is_admin"]
     source = request.form if request.method == "POST" else request.args
-
-    try:
-        table_rows = execute(
-            """
-            SELECT table_name
-            FROM information_schema.tables
-            WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-            ORDER BY table_name
-            """
-        ).fetchall()
-        tables = [row[0] for row in table_rows]
-    except Error:
-        tables = []
+    record_tables = dict(FINANCIAL_RECORD_TABLES)
+    if is_admin:
+        record_tables.update(SENSITIVE_RECORD_TABLES)
+    tables = list(record_tables)
 
     selected_table = source.get("table", "").strip()
-    if request.method == "POST" and selected_table and selected_table not in tables:
-        flash("This table could not be loaded.", "error")
-        return redirect(url_for("main.record_viewer_page"))
-    if tables and selected_table not in tables:
+    if selected_table in SENSITIVE_RECORD_TABLES and not is_admin:
+        abort(403)
+    if selected_table and selected_table not in record_tables:
+        abort(404)
+    if not selected_table:
         selected_table = tables[0]
 
     try:
@@ -51,114 +119,50 @@ def record_viewer_page():
     except ValueError:
         page = 1
 
-    columns = []
-    editable_columns = []
+    table_config = record_tables[selected_table]
+    columns = table_config["columns"]
+    editable_columns = table_config["editable"]
     rows = []
     total_rows = 0
     total_pages = 1
 
-    if selected_table:
-        try:
-            column_rows = execute(
-                """
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_schema = 'public' AND table_name = %s
-                ORDER BY ordinal_position
-                """,
-                (selected_table,),
-            ).fetchall()
-            columns = [row[0] for row in column_rows]
-            editable_columns = [
-                column
-                for column in columns
-                if column not in LOCKED_COLUMNS and not column.endswith("_id")
-            ]
+    try:
+        if request.method == "POST":
+            _change_record(selected_table, editable_columns, group_code, is_admin)
+            return redirect(
+                url_for("main.record_viewer_page", table=selected_table, page=page)
+            )
 
-            if request.method == "POST":
-                action = source.get("action", "").strip()
-                try:
-                    row_id = int(source.get("row_id", "0"))
-                except ValueError:
-                    row_id = 0
+        table_identifier = sql.Identifier(selected_table)
+        count_query = sql.SQL(
+            "SELECT COUNT(*) FROM {} WHERE group_code = %s"
+        ).format(table_identifier)
+        total_rows = execute(count_query, (group_code,)).fetchone()[0]
+        total_pages = max(1, (total_rows + PAGE_SIZE - 1) // PAGE_SIZE)
+        page = max(1, min(page, total_pages))
+        offset = (page - 1) * PAGE_SIZE
 
-                if row_id < 1:
-                    flash("Row was not found.", "error")
-                elif action == "delete":
-                    if not is_admin:
-                        flash("Only admins can delete rows.", "error")
-                    else:
-                        delete_query = sql.SQL(
-                            "DELETE FROM {} WHERE id = %s AND group_code = %s RETURNING id"
-                        ).format(sql.Identifier(selected_table))
-                        deleted_row = execute(
-                            delete_query,
-                            (row_id, group_code),
-                            commit=True,
-                        ).fetchone()
-                        if deleted_row:
-                            flash("Row deleted.", "success")
-                        else:
-                            flash("Row was not found.", "error")
-                elif action == "update":
-                    if editable_columns:
-                        assignments = [
-                            sql.SQL("{} = %s").format(sql.Identifier(column))
-                            for column in editable_columns
-                        ]
-                        values = [source.get(column, "").strip() for column in editable_columns]
-                        update_query = (
-                            sql.SQL("UPDATE {} SET ").format(sql.Identifier(selected_table))
-                            + sql.SQL(", ").join(assignments)
-                            + sql.SQL(" WHERE id = %s AND group_code = %s RETURNING id")
-                        )
-                        updated_row = execute(
-                            update_query,
-                            tuple(values + [row_id, group_code]),
-                            commit=True,
-                        ).fetchone()
-                        if updated_row:
-                            flash("Row updated.", "success")
-                        else:
-                            flash("Row was not found.", "error")
-                    else:
-                        flash("This table cannot be updated here.", "error")
-                else:
-                    flash("This action is invalid.", "error")
-
-                return redirect(
-                    url_for("main.record_viewer_page", table=selected_table, page=page)
-                )
-
-            if columns:
-                count_query = sql.SQL(
-                    "SELECT COUNT(*) FROM {} WHERE group_code = %s"
-                ).format(sql.Identifier(selected_table))
-                total_rows = execute(count_query, (group_code,)).fetchone()[0]
-                total_pages = max(1, (total_rows + PAGE_SIZE - 1) // PAGE_SIZE)
-                page = max(1, min(page, total_pages))
-                offset = (page - 1) * PAGE_SIZE
-
-                data_query = sql.SQL(
-                    "SELECT * FROM {} WHERE group_code = %s ORDER BY id LIMIT %s OFFSET %s"
-                ).format(sql.Identifier(selected_table))
-                data_rows = execute(
-                    data_query,
-                    (group_code, PAGE_SIZE, offset),
-                ).fetchall() or []
-                rows = [dict(zip(columns, row)) for row in data_rows]
-        except Error:
-            columns = []
-            editable_columns = []
-            rows = []
-            total_rows = 0
-            total_pages = 1
-            page = 1
-            if request.method == "POST":
-                flash("Could not save that row.", "error")
-                return redirect(
-                    url_for("main.record_viewer_page", table=selected_table, page=page)
-                )
+        data_query = sql.SQL(
+            "SELECT {} FROM {} WHERE group_code = %s ORDER BY id LIMIT %s OFFSET %s"
+        ).format(
+            sql.SQL(", ").join(map(sql.Identifier, columns)),
+            table_identifier,
+        )
+        data_rows = execute(
+            data_query,
+            (group_code, PAGE_SIZE, offset),
+        ).fetchall() or []
+        rows = [dict(zip(columns, row)) for row in data_rows]
+    except Error:
+        if request.method == "POST":
+            flash("Could not save that row.", "error")
+            return redirect(
+                url_for("main.record_viewer_page", table=selected_table, page=page)
+            )
+        rows = []
+        total_rows = 0
+        total_pages = 1
+        page = 1
 
     return render_template(
         "postlogin/record_viewer.html",
@@ -172,3 +176,52 @@ def record_viewer_page():
         total_pages=total_pages,
         is_admin=is_admin,
     )
+
+
+def _change_record(selected_table, editable_columns, group_code, is_admin):
+    action = request.form.get("action", "").strip()
+    try:
+        row_id = int(request.form.get("row_id", "0"))
+    except ValueError:
+        row_id = 0
+
+    if row_id < 1:
+        flash("Row was not found.", "error")
+        return
+
+    if action == "delete":
+        if not is_admin:
+            abort(403)
+        query = sql.SQL(
+            "DELETE FROM {} WHERE id = %s AND group_code = %s RETURNING id"
+        ).format(sql.Identifier(selected_table))
+        changed_row = execute(query, (row_id, group_code), commit=True).fetchone()
+        message = "Row deleted."
+    elif action == "update" and editable_columns:
+        assignments = [
+            sql.SQL("{} = %s").format(sql.Identifier(column))
+            for column in editable_columns
+        ]
+        values = [request.form.get(column, "").strip() for column in editable_columns]
+        query = (
+            sql.SQL("UPDATE {} SET ").format(sql.Identifier(selected_table))
+            + sql.SQL(", ").join(assignments)
+            + sql.SQL(" WHERE id = %s AND group_code = %s RETURNING id")
+        )
+        changed_row = execute(
+            query,
+            tuple(values + [row_id, group_code]),
+            commit=True,
+        ).fetchone()
+        message = "Row updated."
+    elif action == "update":
+        flash("This table cannot be updated here.", "error")
+        return
+    else:
+        flash("This action is invalid.", "error")
+        return
+
+    if changed_row:
+        flash(message, "success")
+    else:
+        flash("Row was not found.", "error")

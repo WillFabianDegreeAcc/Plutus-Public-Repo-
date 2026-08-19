@@ -4,13 +4,13 @@ from flask import session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.models import (
+    add_invited_user,
     add_user,
     clear_session_token,
     create_invite_link as create_invite_link_model,
     get_invite_link,
     get_user_by_email,
     set_session_token,
-    use_invite_link,
 )
 
 
@@ -19,22 +19,25 @@ def authenticate(email, password):
     if not row:
         return None
 
-    user_id, name, _, password_hash, is_admin, group_code = row
-    return (user_id, name, is_admin, group_code) if check_password_hash(password_hash, password) else None
+    user_id, password_hash = row
+    return user_id if check_password_hash(password_hash, password) else None
 
 
 def create_user(name, email, password):
     password_hash = generate_password_hash(password)
-    group_code = uuid.uuid4().hex[:8].upper()
+    group_code = uuid.uuid4().hex.upper()
     new_user_id = add_user(name, email, password_hash, True, group_code)
-    if new_user_id is None:
-        return None
-    return new_user_id, group_code
+    return new_user_id
 
 
-def create_invited_user(name, email, password, group_code):
+def create_invited_user(name, email, password, invite_token):
     password_hash = generate_password_hash(password)
-    return add_user(name, email, password_hash, False, group_code)
+    return add_invited_user(name, email, password_hash, invite_token)
+
+
+def create_group_user(name, email, password, is_admin, group_code):
+    password_hash = generate_password_hash(password)
+    return add_user(name, email, password_hash, is_admin, group_code)
 
 
 def create_invite_link(admin_user_id, group_code):
@@ -58,16 +61,10 @@ def read_invite(invite_token):
     }
 
 
-def mark_invite_used(invite_token, used_by_user_id):
-    return use_invite_link(invite_token, used_by_user_id)
-
-
-def start_session(user_id, name, is_admin, group_code):
+def start_session(user_id):
     token = uuid.uuid4().hex
+    session.clear()
     session["user_id"] = user_id
-    session["user_name"] = name
-    session["is_admin"] = bool(is_admin)
-    session["group_code"] = group_code
     session["session_token"] = token
     session.permanent = True
     set_session_token(user_id, token)

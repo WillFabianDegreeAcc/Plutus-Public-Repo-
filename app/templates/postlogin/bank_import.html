@@ -69,6 +69,7 @@
 
     <section id="upload-tab-panel" class="bank-tab-panel{% if active_tab == 'upload-tab-panel' %} is-active{% endif %}">
         <form class="transaction-form" action="{{ url_for('main.upload_bank_file') }}" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label for="bank-file-format-id">Bank file format</label>
             <select id="bank-file-format-id" name="bank_file_format_id" required {% if not formats %}disabled{% endif %}>
                 <option value="" disabled selected>Select a saved format</option>
@@ -90,6 +91,7 @@
 
     <section id="format-tab-panel" class="bank-tab-panel{% if active_tab == 'format-tab-panel' %} is-active{% endif %}">
         <form class="transaction-form" action="{{ url_for('main.create_bank_file_format') }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             {{ bank_format_fields() }}
 
             <button type="submit">Save bank file format</button>

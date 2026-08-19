@@ -65,6 +65,19 @@ nav a {
     cursor: pointer;
 }
 
+.nav-logout {
+    margin: 0;
+}
+
+.nav-logout button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #334155;
+    font: inherit;
+    font-weight: 500;
+}
+
 .nav-panel {
     position: absolute;
     top: 100%;
