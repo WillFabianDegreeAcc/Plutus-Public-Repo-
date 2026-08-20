@@ -76,7 +76,7 @@ def transactions_page():
 
 
 @bp.route("/transactions", methods=["POST"])
-@login_required
+@admin_required
 def create_transaction():
     return transaction_controller.create_transaction()
 
@@ -88,19 +88,19 @@ def bank_import_page():
 
 
 @bp.route("/bank-import/formats", methods=["POST"])
-@login_required
+@admin_required
 def create_bank_file_format():
     return bank_import_controller.create_bank_file_format()
 
 
 @bp.route("/bank-import/upload", methods=["POST"])
-@login_required
+@admin_required
 def upload_bank_file():
     return bank_import_controller.upload_bank_file()
 
 
 @bp.route("/reconcile", methods=["GET", "POST"])
-@login_required
+@admin_required
 def reconcile_page():
     return reconciliation_controller.reconcile_page()
 

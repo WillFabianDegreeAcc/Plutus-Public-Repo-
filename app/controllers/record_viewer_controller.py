@@ -121,13 +121,15 @@ def record_viewer_page():
 
     table_config = record_tables[selected_table]
     columns = table_config["columns"]
-    editable_columns = table_config["editable"]
+    editable_columns = table_config["editable"] if is_admin else ()
     rows = []
     total_rows = 0
     total_pages = 1
 
     try:
         if request.method == "POST":
+            if not is_admin:
+                abort(403)
             _change_record(selected_table, editable_columns, group_code, is_admin)
             return redirect(
                 url_for("main.record_viewer_page", table=selected_table, page=page)
