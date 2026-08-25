@@ -1,9 +1,24 @@
+from datetime import date
+from decimal import Decimal, InvalidOperation
+import re
+
 from flask import abort, flash, g, redirect, render_template, request, url_for
 from psycopg2 import Error, sql
 
 from app.models.db import execute
 
 PAGE_SIZE = 20
+TRANSACTION_TYPE_MAP = {"debit": "Debit", "credit": "Credit"}
+EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+$")
+TRANSACTION_GENRES = {
+    "entertainment",
+    "food",
+    "housing",
+    "other",
+    "salary",
+    "transport",
+    "utilities",
+}
 FINANCIAL_RECORD_TABLES = {
     "transactions": {
         "columns": (
@@ -200,11 +215,15 @@ def _change_record(selected_table, editable_columns, group_code, is_admin):
         changed_row = execute(query, (row_id, group_code), commit=True).fetchone()
         message = "Row deleted."
     elif action == "update" and editable_columns:
+        values = _read_update_values(selected_table, editable_columns)
+        if values is None:
+            flash("Invalid values for this row.", "error")
+            return
+
         assignments = [
             sql.SQL("{} = %s").format(sql.Identifier(column))
             for column in editable_columns
         ]
-        values = [request.form.get(column, "").strip() for column in editable_columns]
         query = (
             sql.SQL("UPDATE {} SET ").format(sql.Identifier(selected_table))
             + sql.SQL(", ").join(assignments)
@@ -227,3 +246,83 @@ def _change_record(selected_table, editable_columns, group_code, is_admin):
         flash(message, "success")
     else:
         flash("Row was not found.", "error")
+
+
+def _read_update_values(selected_table, editable_columns):
+    values = {
+        column: request.form.get(column, "").strip() for column in editable_columns
+    }
+
+    optional_columns = {
+        "amount_column",
+        "credit_amount_column",
+        "debit_amount_column",
+        "transaction_type_column",
+    }
+    if any(
+        not value for column, value in values.items() if column not in optional_columns
+    ):
+        return None
+
+    try:
+        if selected_table in {"transactions", "bankTransactions"}:
+            values["transaction_date"] = date.fromisoformat(
+                values["transaction_date"]
+            )
+            values["amount"] = Decimal(values["amount"])
+            values["transaction_type"] = TRANSACTION_TYPE_MAP.get(
+                values["transaction_type"].lower()
+            )
+            if (
+                not values["amount"].is_finite()
+                or values["amount"] <= 0
+                or values["transaction_type"] is None
+            ):
+                return None
+            if selected_table == "transactions":
+                values["transaction_genre"] = values["transaction_genre"].lower()
+                if values["transaction_genre"] not in TRANSACTION_GENRES:
+                    return None
+        elif selected_table == "bankFileFormats":
+            if len(values["delimiter"]) != 1:
+                return None
+
+            integer_columns = {
+                "amount_column",
+                "credit_amount_column",
+                "data_start_row",
+                "date_column",
+                "debit_amount_column",
+                "name_column",
+                "transaction_type_column",
+            }
+            for column in integer_columns:
+                values[column] = int(values[column]) if values[column] else None
+                if values[column] is not None and values[column] < 1:
+                    return None
+
+            if not any(
+                values[column]
+                for column in (
+                    "amount_column",
+                    "credit_amount_column",
+                    "debit_amount_column",
+                )
+            ):
+                return None
+        elif selected_table in {"users", "groupInvites"}:
+            boolean_column = "admin" if selected_table == "users" else "used"
+            boolean_value = values[boolean_column].lower()
+            if (
+                boolean_value not in {"true", "false"}
+                or (
+                    selected_table == "users"
+                    and EMAIL_PATTERN.fullmatch(values["email"]) is None
+                )
+            ):
+                return None
+            values[boolean_column] = boolean_value == "true"
+    except (InvalidOperation, ValueError):
+        return None
+
+    return [values[column] for column in editable_columns]
