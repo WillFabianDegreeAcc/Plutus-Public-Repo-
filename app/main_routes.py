@@ -1,5 +1,6 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, current_app, render_template
 
+from app import limiter
 from app.controllers import (
     app_page_controller,
     auth_controller,
@@ -20,6 +21,7 @@ def home():
 
 
 @bp.route("/login", methods=["POST"])
+@limiter.limit(lambda: current_app.config["LOGIN_RATE_LIMIT"])
 def login():
     return auth_controller.login()
 

@@ -13,6 +13,22 @@ from app.models import (
     set_session_token,
 )
 
+PASSWORD_MIN_LENGTH = 12
+PASSWORD_MAX_LENGTH = 128
+
+
+def is_password_strong(password):
+    return (
+        PASSWORD_MIN_LENGTH <= len(password) <= PASSWORD_MAX_LENGTH
+        and any(character.islower() for character in password)
+        and any(character.isupper() for character in password)
+        and any(character.isdigit() for character in password)
+        and any(
+            not character.isalnum() and not character.isspace()
+            for character in password
+        )
+    )
+
 
 def authenticate(email, password):
     row = get_user_by_email(email)

@@ -33,7 +33,8 @@
         <input id="user-email" name="email" type="email" required>
 
         <label for="user-password">Temporary password</label>
-        <input id="user-password" name="password" type="password" required>
+        <input id="user-password" name="password" type="password" minlength="12" maxlength="128" required>
+        <p>Use 12–128 characters with uppercase and lowercase letters, a number, and a symbol.</p>
 
         <label for="user-admin">Administrator</label>
         <input id="user-admin" name="admin" type="checkbox">

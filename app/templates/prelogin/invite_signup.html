@@ -16,7 +16,8 @@
         <input id="invite-email" name="email" type="email" placeholder="janedoe@example.com" required>
 
         <label for="invite-password">Password</label>
-        <input id="invite-password" name="password" type="password" placeholder="Create a password" required>
+        <input id="invite-password" name="password" type="password" placeholder="Create a password" minlength="12" maxlength="128" required>
+        <p>Use 12–128 characters with uppercase and lowercase letters, a number, and a symbol.</p>
 
         <button type="submit">Create account</button>
     </form>

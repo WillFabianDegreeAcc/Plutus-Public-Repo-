@@ -2,22 +2,28 @@ import os
 
 from dotenv import load_dotenv
 from flask import Flask
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_minify import Minify
 from flask_wtf.csrf import CSRFProtect
 
 load_dotenv()
 csrf = CSRFProtect()
+limiter = Limiter(key_func=get_remote_address)
 
 
 def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
     app.config.update(
+        LOGIN_RATE_LIMIT=os.getenv("LOGIN_RATE_LIMIT", "5 per minute"),
+        RATELIMIT_STORAGE_URI=os.getenv("RATELIMIT_STORAGE_URI", "memory://"),
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=True,
     )
     csrf.init_app(app)
+    limiter.init_app(app)
     Minify(app=app, html=False, js=True, cssless=True, static=True)
 
     @app.after_request

@@ -29,6 +29,11 @@ def method_not_allowed(_error):
     return render_template("errors/405.html"), 405
 
 
+@bp.app_errorhandler(429)
+def too_many_requests(_error):
+    return render_template("errors/429.html"), 429
+
+
 @bp.app_errorhandler(500)
 def internal_server_error(_error):
     return render_template("errors/500.html"), 500
