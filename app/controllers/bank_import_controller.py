@@ -108,7 +108,7 @@ def upload_bank_file():
         flash("Please choose a CSV file.", "error")
         return _redirect_to_bank_import_tab("upload-tab-panel")
 
-    file_bytes = uploaded_file.read()
+    file_bytes = uploaded_file.read(MAX_UPLOAD_SIZE_BYTES + 1)
     if not file_bytes:
         flash("The selected CSV file is empty.", "error")
         return _redirect_to_bank_import_tab("upload-tab-panel")
