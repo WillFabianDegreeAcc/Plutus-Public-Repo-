@@ -1,8 +1,10 @@
 import psycopg2
+from psycopg2 import sql
 
 from app.models.db import execute
 
-BANK_FILE_FORMAT_SELECT_COLUMNS = """
+BANK_FILE_FORMAT_SELECT_COLUMNS = sql.SQL(
+    """
                 id,
                 format_name,
                 delimiter,
@@ -15,6 +17,7 @@ BANK_FILE_FORMAT_SELECT_COLUMNS = """
                 credit_amount_column,
                 transaction_type_column
 """
+)
 
 
 def add_bank_file_format(
@@ -76,13 +79,15 @@ def add_bank_file_format(
 def get_bank_file_formats_for_group(group_code):
     try:
         return execute(
-            f"""
+            sql.SQL(
+                """
             SELECT
-{BANK_FILE_FORMAT_SELECT_COLUMNS}
+{}
             FROM "bankFileFormats"
             WHERE group_code = %s
             ORDER BY format_name ASC, id ASC
-            """,
+            """
+            ).format(BANK_FILE_FORMAT_SELECT_COLUMNS),
             (group_code,),
         ).fetchall()
     except psycopg2.Error:
@@ -92,12 +97,14 @@ def get_bank_file_formats_for_group(group_code):
 def get_bank_file_format_by_id(group_code, bank_file_format_id):
     try:
         return execute(
-            f"""
+            sql.SQL(
+                """
             SELECT
-{BANK_FILE_FORMAT_SELECT_COLUMNS}
+{}
             FROM "bankFileFormats"
             WHERE group_code = %s AND id = %s
-            """,
+            """
+            ).format(BANK_FILE_FORMAT_SELECT_COLUMNS),
             (group_code, bank_file_format_id),
         ).fetchone()
     except psycopg2.Error:
