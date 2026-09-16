@@ -48,4 +48,5 @@ def create_transaction():
         flash(INVALID_TRANSACTION, "error")
         return redirect(url_for("main.transactions_page"))
 
+    flash("Transaction created.", "success")
     return redirect(url_for("main.transactions_page"))

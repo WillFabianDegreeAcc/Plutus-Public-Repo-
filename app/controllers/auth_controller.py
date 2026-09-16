@@ -17,6 +17,7 @@ def login():
         return redirect(url_for("main.home"))
 
     auth_service.start_session(authenticated_user)
+    flash("Logged in successfully.", "success")
     return redirect(url_for("main.app_page"))
 
 
@@ -35,11 +36,13 @@ def signup():
         flash(EMAIL_EXISTS, "error")
         return redirect(url_for("main.home"))
     auth_service.start_session(new_id)
+    flash("Account created.", "success")
     return redirect(url_for("main.app_page"))
 
 
 def logout():
     auth_service.logout()
+    flash("Logged out successfully.", "success")
     return redirect(url_for("main.home"))
 
 
@@ -56,6 +59,7 @@ def generate_invite_link():
         return redirect(url_for("main.settings_page"))
 
     invite_link = url_for("main.invite_signup_page", token=invite_token, _external=True)
+    flash("Invite link created.", "success")
     return render_template("postlogin/settings.html", invite_link=invite_link)
 
 
@@ -119,4 +123,5 @@ def invite_signup(token):
         return redirect(url_for("main.invite_signup_page", token=token))
 
     auth_service.start_session(created_user)
+    flash("Account created.", "success")
     return redirect(url_for("main.app_page"))
