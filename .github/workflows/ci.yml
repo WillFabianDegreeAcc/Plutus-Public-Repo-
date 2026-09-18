@@ -31,7 +31,16 @@ jobs:
         run: ruff check --select E,F --ignore E501,E302 .
 
       - name: Test with coverage
-        run: pytest --cov=app --cov-report=term-missing || test $? -eq 5
+        run: pytest --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=test-results.xml
+
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-and-coverage-results
+          path: |
+            coverage.xml
+            test-results.xml
 
       - name: Check application security
         run: bandit --recursive app seed.py wsgi.py

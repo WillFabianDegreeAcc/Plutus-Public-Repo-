@@ -29,7 +29,7 @@ def create_transaction():
 
     transaction_type = {"debit": "Debit", "credit": "Credit"}.get(transaction_type_raw.lower())
 
-    if amount <= 0 or transaction_type is None:
+    if not amount.is_finite() or amount <= 0 or transaction_type is None:
         flash(INVALID_TRANSACTION, "error")
         return redirect(url_for("main.transactions_page"))
 
