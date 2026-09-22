@@ -61,6 +61,17 @@ nav a {
     position: relative;
 }
 
+.nav-menu::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 320px;
+    max-width: 80vw;
+    height: 0.35rem;
+    display: none;
+}
+
 .nav-trigger {
     cursor: pointer;
 }
@@ -97,6 +108,11 @@ nav a {
 .nav-menu:hover .nav-panel,
 .nav-menu:focus-within .nav-panel {
     display: grid;
+}
+
+.nav-menu:hover::after,
+.nav-menu:focus-within::after {
+    display: block;
 }
 
 .nav-panel label {
