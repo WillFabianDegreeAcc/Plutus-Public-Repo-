@@ -1,4 +1,5 @@
 EMAIL_EXISTS = "Email already exists"
+INVALID_EMAIL = "Enter a valid email address"
 INVALID_LOGIN = "Invalid login"
 MISSING_FIELDS = "Missing fields"
 WEAK_PASSWORD = (

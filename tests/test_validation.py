@@ -1,7 +1,13 @@
 import pytest
 
 from app.controllers import bank_import_controller, record_viewer_controller
-from app.messages import INVALID_TRANSACTION, MISSING_FIELDS, WEAK_PASSWORD
+from app.messages import (
+    INVALID_EMAIL,
+    INVALID_TRANSACTION,
+    MISSING_FIELDS,
+    WEAK_PASSWORD,
+)
+from app.services import auth_service
 
 
 @pytest.mark.parametrize(
@@ -97,6 +103,74 @@ def test_invalid_signup_is_rejected(
     assert not created
     with client.session_transaction() as session:
         assert session["_flashes"][-1][1] == expected_message
+
+
+@pytest.mark.parametrize(
+    ("email", "is_valid"),
+    [
+        ("user@example.com", True),
+        ("user.name+tag@example.co.uk", True),
+        ("user.example.com", False),
+        ("user@example", False),
+        ("user @example.com", False),
+    ],
+)
+def test_email_validation(email, is_valid):
+    assert auth_service.is_email_valid(email) is is_valid
+
+
+@pytest.mark.parametrize(
+    ("path", "create_method", "requires_admin", "requires_invite"),
+    [
+        ("/signup", "create_user", False, False),
+        (
+            "/invite/invite-token/signup",
+            "create_invited_user",
+            False,
+            True,
+        ),
+        ("/settings/users", "create_group_user", True, False),
+    ],
+)
+def test_invalid_creation_email_is_rejected(
+    client,
+    log_in,
+    monkeypatch,
+    path,
+    create_method,
+    requires_admin,
+    requires_invite,
+):
+    if requires_admin:
+        log_in(client, admin=True)
+    if requires_invite:
+        monkeypatch.setattr(
+            auth_service,
+            "read_invite",
+            lambda token: {"used": False},
+        )
+
+    created = False
+
+    def create_user(*args):
+        nonlocal created
+        created = True
+
+    monkeypatch.setattr(auth_service, create_method, create_user)
+
+    response = client.post(
+        path,
+        data={
+            "name": "Test User",
+            "email": "invalid-email",
+            "password": "StrongPassword1!",
+        },
+    )
+
+    assert response.status_code == 302
+    assert not created
+    with client.session_transaction() as session:
+        assert session["_flashes"][-1][1] == INVALID_EMAIL
 
 
 @pytest.mark.parametrize(

@@ -1,3 +1,4 @@
+import re
 import uuid
 
 from flask import session
@@ -7,14 +8,19 @@ from app.models import (
     add_invited_user,
     add_user,
     clear_session_token,
-    create_invite_link as create_invite_link_model,
     get_invite_link,
     get_user_by_email,
     set_session_token,
 )
+from app.models import create_invite_link as create_invite_link_model
 
 PASSWORD_MIN_LENGTH = 12
 PASSWORD_MAX_LENGTH = 128
+EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def is_email_valid(email):
+    return EMAIL_PATTERN.fullmatch(email) is not None
 
 
 def is_password_strong(password):

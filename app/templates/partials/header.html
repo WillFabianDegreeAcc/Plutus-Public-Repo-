@@ -12,7 +12,7 @@
             {% if g.current_user.is_admin %}
                 <a class="nav-trigger" href="{{ url_for('main.settings_page') }}">Settings</a>
             {% endif %}
-            <form class="nav-logout" action="{{ url_for('main.logout') }}" method="post" onsubmit="return confirm('Are you sure you want to log out?');">
+            <form class="nav-logout" action="{{ url_for('main.logout') }}" method="post" data-confirm="Are you sure you want to log out?">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="nav-trigger" type="submit">Log out</button>
             </form>

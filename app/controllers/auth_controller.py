@@ -1,6 +1,12 @@
 from flask import flash, g, redirect, render_template, request, url_for
 
-from app.messages import EMAIL_EXISTS, INVALID_LOGIN, MISSING_FIELDS, WEAK_PASSWORD
+from app.messages import (
+    EMAIL_EXISTS,
+    INVALID_EMAIL,
+    INVALID_LOGIN,
+    MISSING_FIELDS,
+    WEAK_PASSWORD,
+)
 from app.services import auth_service
 
 
@@ -27,6 +33,9 @@ def signup():
     password = request.form.get("password", "")
     if not name or not email or not password:
         flash(MISSING_FIELDS, "error")
+        return redirect(url_for("main.home"))
+    if not auth_service.is_email_valid(email):
+        flash(INVALID_EMAIL, "error")
         return redirect(url_for("main.home"))
     if not auth_service.is_password_strong(password):
         flash(WEAK_PASSWORD, "error")
@@ -71,6 +80,9 @@ def create_group_user():
     if not name or not email or not password:
         flash(MISSING_FIELDS, "error")
         return redirect(url_for("main.settings_page"))
+    if not auth_service.is_email_valid(email):
+        flash(INVALID_EMAIL, "error")
+        return redirect(url_for("main.settings_page"))
     if not auth_service.is_password_strong(password):
         flash(WEAK_PASSWORD, "error")
         return redirect(url_for("main.settings_page"))
@@ -108,6 +120,9 @@ def invite_signup(token):
     password = request.form.get("password", "")
     if not name or not email or not password:
         flash(MISSING_FIELDS, "error")
+        return redirect(url_for("main.invite_signup_page", token=token))
+    if not auth_service.is_email_valid(email):
+        flash(INVALID_EMAIL, "error")
         return redirect(url_for("main.invite_signup_page", token=token))
     if not auth_service.is_password_strong(password):
         flash(WEAK_PASSWORD, "error")

@@ -1,15 +1,14 @@
 from datetime import date
 from decimal import Decimal, InvalidOperation
-import re
 
 from flask import abort, flash, g, redirect, render_template, request, url_for
 from psycopg2 import Error, sql
 
 from app.models.db import execute
+from app.services.auth_service import is_email_valid
 
 PAGE_SIZE = 20
 TRANSACTION_TYPE_MAP = {"debit": "Debit", "credit": "Credit"}
-EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+$")
 TRANSACTION_GENRES = {
     "entertainment",
     "food",
@@ -317,7 +316,7 @@ def _read_update_values(selected_table, editable_columns):
                 boolean_value not in {"true", "false"}
                 or (
                     selected_table == "users"
-                    and EMAIL_PATTERN.fullmatch(values["email"]) is None
+                    and not is_email_valid(values["email"])
                 )
             ):
                 return None
