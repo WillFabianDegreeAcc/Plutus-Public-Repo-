@@ -31,7 +31,7 @@ jobs:
         run: ruff check --select E,F --ignore E501,E302 .
 
       - name: Test with coverage
-        run: pytest --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=test-results.xml
+        run: python -m pytest --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=test-results.xml
 
       - name: Upload test evidence
         if: always()
